@@ -65,7 +65,7 @@
                     :id="'edit_form_start_date_'+index"
                     class="col-md-4"
                     :field="v$.start_date"
-                    input-type="date"
+                    input-type="datetime-local"
                     :label="$gettext('Start Date')"
                     :description="$gettext('To set this schedule to run only within a certain date range, specify a start and end date.')"
                 />
@@ -74,7 +74,7 @@
                     :id="'edit_form_end_date_'+index"
                     class="col-md-4"
                     :field="v$.end_date"
-                    input-type="date"
+                    input-type="datetime-local"
                     :label="$gettext('End Date')"
                 />
 
