@@ -632,6 +632,13 @@ final class ConfigWriter implements EventSubscriberInterface
                 );
             }
         }
+
+        // CLVBS custom metadata for DJ_ID (set in album field)
+        $event->appendLines(['#CLVBS custom metadata for DJ_ID (set in album field)',
+        'def override_metadata(m) =',
+        '     [("title", "{\'artist\':\'"^m["artist"]^"\',\'title\':\'"^m["title"]^"\',\'DJ_ID\':\'"^m["album"]^"\'}"),("artist", "")]',
+        'end',
+        'radio = metadata.map(override_metadata, radio)']);
     }
 
     /**

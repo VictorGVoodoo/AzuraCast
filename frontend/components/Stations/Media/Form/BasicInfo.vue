@@ -33,7 +33,7 @@
             id="edit_form_album"
             class="col-md-6"
             :field="form.album"
-            :label="$gettext('Song Album')"
+            :label="$gettext('DJ ID')"
         />
 
         <form-group-field
