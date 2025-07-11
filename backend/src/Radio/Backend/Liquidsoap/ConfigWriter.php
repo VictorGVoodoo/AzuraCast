@@ -586,13 +586,13 @@ final class ConfigWriter implements EventSubscriberInterface
             }
         }
 
-        if (!$station->useManualAutoDJ()) {
-            $event->appendBlock(
-                <<< LIQ
-                radio = azuracast.enable_autodj(radio)
-                LIQ
-            );
-        }
+        // if (!$station->useManualAutoDJ()) {
+        //     $event->appendBlock(
+        //         <<< LIQ
+        //         radio = azuracast.enable_autodj(radio)
+        //         LIQ
+        //     );
+        // }
 
         // Handle remote URL fallbacks.
         if (null !== $fallbackRemoteUrl) {
@@ -607,15 +607,15 @@ final class ConfigWriter implements EventSubscriberInterface
         $requestsQueueName = LiquidsoapQueues::Requests->value;
         $interruptingQueueName = LiquidsoapQueues::Interrupting->value;
 
-        $event->appendBlock(
-            <<< LIQ
-            requests = request.queue(id="{$requestsQueueName}", timeout=settings.azuracast.request_timeout())
-            radio = fallback(id="requests_fallback", track_sensitive = true, [requests, radio])
+        // $event->appendBlock(
+        //     <<< LIQ
+        //     requests = request.queue(id="{$requestsQueueName}", timeout=settings.azuracast.request_timeout())
+        //     radio = fallback(id="requests_fallback", track_sensitive = true, [requests, radio])
 
-            interrupting_queue = request.queue(id="{$interruptingQueueName}", timeout=settings.azuracast.request_timeout())
-            radio = fallback(id="interrupting_fallback", track_sensitive = false, [interrupting_queue, radio])
-            LIQ
-        );
+        //     interrupting_queue = request.queue(id="{$interruptingQueueName}", timeout=settings.azuracast.request_timeout())
+        //     radio = fallback(id="interrupting_fallback", track_sensitive = false, [interrupting_queue, radio])
+        //     LIQ
+        // );
 
         if (!empty($scheduleSwitchesRemoteUrl)) {
             $event->appendLines(['# Remote URL Schedule Switches']);
@@ -648,34 +648,34 @@ final class ConfigWriter implements EventSubscriberInterface
         $startTime = $playlistSchedule->getStartTime();
         $endTime = $playlistSchedule->getEndTime();
 
-        // Handle multi-day playlists.
-        if ($startTime > $endTime) {
-            $playTimes = [
-                self::formatTimeCode($startTime) . '-23h59m59s',
-                '00h00m-' . self::formatTimeCode($endTime),
-            ];
+        // // Handle multi-day playlists.
+        // if ($startTime > $endTime) {
+        //     $playTimes = [
+        //         self::formatTimeCode($startTime) . '-23h59m59s',
+        //         '00h00m-' . self::formatTimeCode($endTime),
+        //     ];
 
-            $playlistScheduleDays = $playlistSchedule->getDays();
-            if (!empty($playlistScheduleDays) && count($playlistScheduleDays) < 7) {
-                $currentPlayDays = [];
-                $nextPlayDays = [];
+        //     $playlistScheduleDays = $playlistSchedule->getDays();
+        //     if (!empty($playlistScheduleDays) && count($playlistScheduleDays) < 7) {
+        //         $currentPlayDays = [];
+        //         $nextPlayDays = [];
 
-                foreach ($playlistScheduleDays as $day) {
-                    $currentPlayDays[] = (($day === 7) ? '0' : $day) . 'w';
+        //         foreach ($playlistScheduleDays as $day) {
+        //             $currentPlayDays[] = (($day === 7) ? '0' : $day) . 'w';
 
-                    $day++;
-                    if ($day > 7) {
-                        $day = 1;
-                    }
-                    $nextPlayDays[] = (($day === 7) ? '0' : $day) . 'w';
-                }
+        //             $day++;
+        //             if ($day > 7) {
+        //                 $day = 1;
+        //             }
+        //             $nextPlayDays[] = (($day === 7) ? '0' : $day) . 'w';
+        //         }
 
-                $playTimes[0] = '(' . implode(' or ', $currentPlayDays) . ') and ' . $playTimes[0];
-                $playTimes[1] = '(' . implode(' or ', $nextPlayDays) . ') and ' . $playTimes[1];
-            }
+        //         $playTimes[0] = '(' . implode(' or ', $currentPlayDays) . ') and ' . $playTimes[0];
+        //         $playTimes[1] = '(' . implode(' or ', $nextPlayDays) . ') and ' . $playTimes[1];
+        //     }
 
-            return '(' . implode(') or (', $playTimes) . ')';
-        }
+        //     return '(' . implode(') or (', $playTimes) . ')';
+        // }
 
         // Handle once-per-day playlists.
         $playTime = ($startTime === $endTime)
@@ -710,7 +710,8 @@ final class ConfigWriter implements EventSubscriberInterface
                 $startDateObj = CarbonImmutable::createFromFormat('Y-m-d', $startDate, $tzObject);
 
                 if (null !== $startDateObj) {
-                    $startDateObj = $startDateObj->setTime(0, 0);
+                    $startTimePadded = str_pad((string)$startTime, 4, '0', STR_PAD_LEFT);
+                    $startDateObj = $startDateObj->setTime((int)substr($startTimePadded, 0, 2),(int)substr($startTimePadded, 2));
 
                     $customFunctionBody[] = '    # ' . $startDateObj->__toString();
                     $customFunctionBody[] = '    range_start = ' . $startDateObj->getTimestamp() . '.';
@@ -720,9 +721,11 @@ final class ConfigWriter implements EventSubscriberInterface
 
             if (!empty($endDate)) {
                 $endDateObj = CarbonImmutable::createFromFormat('Y-m-d', $endDate, $tzObject);
+                //$playlistSchedule->setEndTime($endDateObj->getTimestamp());
 
                 if (null !== $endDateObj) {
-                    $endDateObj = $endDateObj->setTime(23, 59, 59);
+                    $endTimePadded = str_pad((string)$endTime, 4, '0', STR_PAD_LEFT);
+                    $endDateObj = $endDateObj->setTime((int)substr($endTimePadded, 0, 2),(int)substr($endTimePadded, 2));
 
                     $customFunctionBody[] = '    # ' . $endDateObj->__toString();
                     $customFunctionBody[] = '    range_end = ' . $endDateObj->getTimestamp() . '.';
@@ -737,7 +740,7 @@ final class ConfigWriter implements EventSubscriberInterface
             $customFunctionBody[] = 'end';
             $event->appendLines($customFunctionBody);
 
-            $playTime = $scheduleMethod . '() and ' . $playTime;
+            $playTime = $scheduleMethod . '()';// and ' . $playTime;
         }
 
         return $playTime;

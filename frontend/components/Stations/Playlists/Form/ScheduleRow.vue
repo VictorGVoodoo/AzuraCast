@@ -20,13 +20,15 @@
             </div>
         </div>
         <div class="card-body">
+            <div class="p-2 mb-2 bg-secondary text-white text-center">
+                ⚠️ This is a modified scheduler to fit CLVBS needs ⚠️
+            </div>
             <div class="row g-3">
                 <form-group-field
                     :id="'edit_form_start_time_'+index"
                     class="col-md-4"
                     :field="v$.start_time"
                     :label="$gettext('Start Time')"
-                    :description="$gettext('To play once per day, set the start and end times to the same value.')"
                 >
                     <template #default="{id, model, fieldClass}">
                         <playlist-time
@@ -42,7 +44,6 @@
                     class="col-md-4"
                     :field="v$.end_time"
                     :label="$gettext('End Time')"
-                    :description="$gettext('If the end time is before the start time, the playlist will play overnight.')"
                 >
                     <template #default="{id, model, fieldClass}">
                         <playlist-time
@@ -67,7 +68,6 @@
                     :field="v$.start_date"
                     input-type="date"
                     :label="$gettext('Start Date')"
-                    :description="$gettext('To set this schedule to run only within a certain date range, specify a start and end date.')"
                 />
 
                 <form-group-field
