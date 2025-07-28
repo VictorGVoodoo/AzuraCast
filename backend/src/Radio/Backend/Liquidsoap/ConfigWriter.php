@@ -588,23 +588,23 @@ final class ConfigWriter implements EventSubscriberInterface
             }
         }
 
-        if (!$station->backend_config->use_manual_autodj) {
-            $event->appendBlock(
-                <<< LIQ
-                radio = azuracast.enable_autodj(radio)
-                LIQ
-            );
-        }
+        // if (!$station->backend_config->use_manual_autodj) {
+        //     $event->appendBlock(
+        //         <<< LIQ
+        //         radio = azuracast.enable_autodj(radio)
+        //         LIQ
+        //     );
+        // }
 
-        // Handle remote URL fallbacks.
-        if (null !== $fallbackRemoteUrl) {
-            $event->appendBlock(
-                <<< LIQ
-                remote_url = {$fallbackRemoteUrl}
-                radio = fallback(id="fallback_remote_url", track_sensitive = false, [remote_url, radio])
-                LIQ
-            );
-        }
+        // // Handle remote URL fallbacks.
+        // if (null !== $fallbackRemoteUrl) {
+        //     $event->appendBlock(
+        //         <<< LIQ
+        //         remote_url = {$fallbackRemoteUrl}
+        //         radio = fallback(id="fallback_remote_url", track_sensitive = false, [remote_url, radio])
+        //         LIQ
+        //     );
+        // }
 
         $requestsQueueName = LiquidsoapQueues::Requests->value;
         $interruptingQueueName = LiquidsoapQueues::Interrupting->value;
