@@ -684,7 +684,7 @@ final class ConfigWriter implements EventSubscriberInterface
         //     }
 
         //     return '(' . implode(') or (', $playTimes) . ')';
-        // }
+        }
 
         // Handle once-per-day playlists.
         $playTime = ($startTime === $endTime)
