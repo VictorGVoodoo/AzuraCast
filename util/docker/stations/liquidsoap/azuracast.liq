@@ -128,7 +128,6 @@ let azuracast.last_artist = ref("")
 Utility Functions
 ----->#
 
-%include "./cache.liq"
 %include "./crossfade.liq"
 %include "./utilities.liq"
 
@@ -143,9 +142,9 @@ Liquidsoap HTTP API
 def azuracast.http_api_log_requests(req, res, next)
     started_at = time()
     next(req, res)
-    duration = time() - started_at
+    req_duration = time() - started_at
 
-    log(label="http", "#{req.method} #{req.path} #{res.status_code.current()} #{duration}")
+    log(label="http", "#{req.method} #{req.path} #{res.status_code.current()} #{req_duration}")
 end
 
 harbor.http.middleware.register(azuracast.http_api_log_requests)
@@ -169,14 +168,14 @@ end
 API Utilities
 ----->#
 
-def azuracast.api_call(~timeout=null(), url, payload) =
+def azuracast.api_call(~timeout=null(), endpoint_url, payload) =
     timeout = timeout ?? settings.azuracast.http_timeout()
-    full_url = "#{settings.azuracast.api_url()}/#{url}"
+    full_url = "#{settings.azuracast.api_url()}/#{endpoint_url}"
 
     log(
         level=3,
         label="azuracast.api",
-        "API #{url} - Sending POST request to '#{full_url}' with body: #{payload}"
+        "API #{endpoint_url} - Sending POST request to '#{full_url}' with body: #{payload}"
     )
 
     try
@@ -193,7 +192,7 @@ def azuracast.api_call(~timeout=null(), url, payload) =
         log(
             level=3,
             label="azuracast.api",
-            "API #{url} - Response (#{response.status_code}): #{response}"
+            "API #{endpoint_url} - Response (#{response.status_code}): #{response}"
         )
 
         if response.status_code != 200 then
@@ -205,7 +204,7 @@ def azuracast.api_call(~timeout=null(), url, payload) =
         log(
             level=2,
             label="azuracast.api",
-            "API #{url} - Error: #{error.kind(err)} - #{error.message(err)}"
+            "API #{endpoint_url} - Error: #{error.kind(err)} - #{error.message(err)}"
         )
         
         null()
@@ -310,65 +309,42 @@ def azuracast.autocue(
 
         autocue_result
     elsif settings.azuracast.compute_autocue() then
-        let cache_key = "autocue_#{filename}"
-
         log(
-            level=3,
+            level=2,
             label=label,
-            "Cache key: #{cache_key}"
+            "Cache missed; computing AutoCue values."
         )
 
-        if azuracast.cache.has(cache_key) then
-            let cache_result_raw = null.get(azuracast.cache.get(cache_key))
+        let autocue_result = autocue.internal.implementation(
+            request_metadata=request_metadata, 
+            file_metadata=file_metadata, 
+            filename
+        )
 
+        # Save cache back to AzuraCast.
+        if list.assoc(default="", "azuracast_cache_key", request_metadata) != "" then
+            cache_key = list.assoc("azuracast_cache_key", request_metadata);
             log(
                 level=2,
                 label=label,
-                "Pulling AutoCue data from cache."
+                "Saving cache to AzuraCast (key #{cache_key})"
             )
-            log(
-                level=3,
-                label=label,
-                "Cache result: #{cache_result_raw}"
-            )
-
-            try
-                let json.parse (
-                    autocue_result : {
-                        cue_in: float,
-                        cue_out: float,
-                        fade_in: float,
-                        fade_out: float,
-                        start_next: float?,
-                        amplify: string?
-                    }?
-                ) = cache_result_raw
-
-                autocue_result
-            catch err do
-                log(
-                    level=1,
-                    label=label,
-                    "ERROR parsing JSON: #{err}"
+            
+            def f() =
+                _ = azuracast.api_call(
+                    timeout=5.0,
+                    "savecache",
+                    json.stringify({
+                        cache_key = cache_key,
+                        data = autocue_result
+                    })
                 )
-                null()
             end
-        else
-            log(
-                level=2,
-                label=label,
-                "Cache missed; computing AutoCue values."
-            )
-
-            let autocue_result = autocue.internal.implementation(
-                request_metadata=request_metadata, 
-                file_metadata=file_metadata, 
-                filename
-            )
-
-            azuracast.cache.set(cache_key, json.stringify(autocue_result))
-            autocue_result
+        
+            thread.run(fast=false, f)
         end
+
+        autocue_result
     else
         null()
     end

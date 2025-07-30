@@ -2152,6 +2152,24 @@ paths:
           $ref: '#/components/responses/RecordNotFound'
         '500':
           $ref: '#/components/responses/GenericError'
+  '/station/{station_id}/files/bulk/preview':
+    post:
+      tags:
+        - 'Stations: Media'
+      summary: 'Preview changes from a CSV containing details about all station media.'
+      operationId: postStationBulkMediaPreview
+      parameters:
+        -
+          $ref: '#/components/parameters/StationIdRequired'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/RecordNotFound'
+        '500':
+          $ref: '#/components/responses/GenericError'
   '/station/{station_id}/custom_assets/{type}':
     get:
       tags:
@@ -2452,13 +2470,39 @@ paths:
         -
           $ref: '#/components/parameters/StationIdRequired'
         -
-          name: id
+          name: media_id
           in: path
           description: 'Media ID'
           required: true
           schema:
             type: integer
             format: int64
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessWithDownload'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/RecordNotFound'
+        '500':
+          $ref: '#/components/responses/GenericError'
+  '/station/{station_id}/file/{song_id}/play':
+    get:
+      tags:
+        - 'Stations: Media'
+      summary: 'Download or play a given file by song_id.'
+      operationId: getPlayFileSongId
+      parameters:
+        -
+          $ref: '#/components/parameters/StationIdRequired'
+        -
+          name: song_id
+          in: path
+          description: 'Media ID'
+          required: true
+          schema:
+            type: string
+            format: guid
       responses:
         '200':
           $ref: '#/components/responses/SuccessWithDownload'
@@ -2542,7 +2586,7 @@ paths:
         -
           $ref: '#/components/parameters/StationIdRequired'
         -
-          name: id
+          name: media_id
           in: path
           description: 'Media ID'
           required: true
@@ -2571,7 +2615,7 @@ paths:
         -
           $ref: '#/components/parameters/StationIdRequired'
         -
-          name: id
+          name: media_id
           in: path
           description: 'Media ID'
           required: true
@@ -2601,7 +2645,7 @@ paths:
         -
           $ref: '#/components/parameters/StationIdRequired'
         -
-          name: id
+          name: media_id
           in: path
           description: 'Media ID'
           required: true
@@ -2888,6 +2932,24 @@ paths:
         '404':
           $ref: '#/components/responses/RecordNotFound'
       security: []
+  '/station/{station_id}/liquidsoap-config/export':
+    get:
+      tags:
+        - 'Stations: Broadcasting'
+      summary: 'Generate an archive of all Liquidsoap configuration on your station, including custom config.'
+      operationId: exportStationLiquidsoapConfig
+      parameters:
+        -
+          $ref: '#/components/parameters/StationIdRequired'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/RecordNotFound'
+        '500':
+          $ref: '#/components/responses/GenericError'
   '/station/{station_id}/liquidsoap-config':
     get:
       tags:
@@ -2911,6 +2973,24 @@ paths:
         - 'Stations: Broadcasting'
       summary: 'Save the editable sections of the station Liquidsoap configuration.'
       operationId: putStationLiquidsoapConfig
+      parameters:
+        -
+          $ref: '#/components/parameters/StationIdRequired'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/RecordNotFound'
+        '500':
+          $ref: '#/components/responses/GenericError'
+  '/station/{station_id}/liquidsoap-config/import':
+    post:
+      tags:
+        - 'Stations: Broadcasting'
+      summary: 'Import a previously exported Liquidsoap configuration archive and replace custom config sections.'
+      operationId: importStationLiquidsoapConfig
       parameters:
         -
           $ref: '#/components/parameters/StationIdRequired'
@@ -3520,7 +3600,7 @@ paths:
       tags:
         - 'Stations: Playlists'
       summary: 'Import the contents of an uploaded playlist (PLS/M3U) file into the specified playlist.'
-      operationId: getStationPlaylistImport
+      operationId: postStationPlaylistImport
       parameters:
         -
           $ref: '#/components/parameters/StationIdRequired'
@@ -3702,7 +3782,7 @@ paths:
     delete:
       tags:
         - 'Stations: Playlists'
-      summary: 'Delete a single playlist relay.'
+      summary: 'Delete a single playlist.'
       operationId: deletePlaylist
       parameters:
         -
@@ -6069,6 +6149,36 @@ paths:
           $ref: '#/components/responses/RecordNotFound'
         '500':
           $ref: '#/components/responses/GenericError'
+  '/station/{station_id}/webhook/{id}/clone':
+    post:
+      tags:
+        - 'Stations: Web Hooks'
+      summary: 'Duplicate a single web hook.'
+      operationId: cloneWebhook
+      parameters:
+        -
+          $ref: '#/components/parameters/StationIdRequired'
+        -
+          name: id
+          in: path
+          description: 'Web Hook ID'
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StationWebhook'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/RecordNotFound'
+        '500':
+          $ref: '#/components/responses/GenericError'
 components:
   schemas:
     Api_Account_ChangePassword:
@@ -6822,10 +6932,12 @@ components:
           description: 'The stable-equivalent branch your installation currently appears to be on.'
           type: string
           example: 0.20.3
+          nullable: true
         latest_release:
           description: 'The current latest stable release of the software.'
           type: string
           example: 0.20.4
+          nullable: true
         needs_rolling_update:
           description: 'If you are on the Rolling Release, whether your installation needs to be updated.'
           type: boolean
@@ -7564,6 +7676,9 @@ components:
               type: string
             art_updated_at:
               type: integer
+            guid:
+              description: 'The UUIDv5 global unique identifier for this podcast, based on its RSS feed URL.'
+              type: string
             is_published:
               type: boolean
             episodes:
@@ -7721,11 +7836,11 @@ components:
               type: integer
               example: 1
             unique_id:
-              description: 'A unique identifier associated with this record.'
+              description: "A unique identifier for this specific media item in the station's library. Each entry in the media table has a unique ID, even if it refers to a song that exists elsewhere."
               type: string
               example: 69b536afc7ebbf16457b8645
             song_id:
-              description: "The media file's 32-character unique song identifier hash"
+              description: "The media file's 32-character unique song identifier hash. This hash is based on track metadata, so the same song uploaded multiple times will have the same `song_id`."
               type: string
               example: 9f33bbc912c19603e51be8e0987d076b
             art:
@@ -8570,10 +8685,6 @@ components:
           description: 'The UNIX timestamp when the Maxmind Geolite was last downloaded.'
           type: integer
           example: 1609480800
-        enable_advanced_features:
-          description: "Whether to enable 'advanced' functionality in the system that is intended for power users."
-          type: boolean
-          example: false
         mail_enabled:
           description: 'Enable e-mail delivery across the application.'
           type: boolean
@@ -8675,13 +8786,11 @@ components:
             frontend_type:
               $ref: '#/components/schemas/FrontendAdapters'
             frontend_config:
-              description: 'An array containing station-specific frontend configuration'
-              type: object
+              $ref: '#/components/schemas/StationFrontendConfiguration'
             backend_type:
               $ref: '#/components/schemas/BackendAdapters'
             backend_config:
-              description: 'An array containing station-specific backend configuration'
-              type: object
+              $ref: '#/components/schemas/StationBackendConfiguration'
             description:
               type: string
               example: 'A sample radio station.'
@@ -8697,7 +8806,6 @@ components:
             radio_base_dir:
               type: string
               example: /var/azuracast/stations/azuratest_radio
-              nullable: true
             enable_requests:
               description: 'Whether listeners can request songs to play on this station.'
               type: boolean
@@ -8746,7 +8854,6 @@ components:
               description: 'The time zone that station operations should take place in.'
               type: string
               example: UTC
-              nullable: true
             max_bitrate:
               description: 'The maximum bitrate at which a station may broadcast, in Kbps. 0 for unlimited'
               type: integer
@@ -8760,9 +8867,154 @@ components:
               type: integer
               example: 3
             branding_config:
-              description: 'An array containing station-specific branding configuration'
-              type: object
+              $ref: '#/components/schemas/StationBrandingConfiguration'
           type: object
+    StationBackendConfiguration:
+      properties:
+        charset:
+          type: string
+        dj_port:
+          type: integer
+          nullable: true
+        telnet_port:
+          type: integer
+          nullable: true
+        record_streams:
+          type: boolean
+        record_streams_format:
+          type: string
+        record_streams_bitrate:
+          type: integer
+        use_manual_autodj:
+          type: boolean
+        autodj_queue_length:
+          type: integer
+        dj_mount_point:
+          type: string
+        dj_buffer:
+          type: integer
+        audio_processing_method:
+          type: string
+        post_processing_include_live:
+          type: boolean
+        stereo_tool_license_key:
+          type: string
+          nullable: true
+        stereo_tool_configuration_path:
+          type: string
+          nullable: true
+        master_me_preset:
+          type: string
+          nullable: true
+        master_me_loudness_target:
+          type: integer
+        enable_replaygain_metadata:
+          type: boolean
+        crossfade_type:
+          type: string
+        crossfade:
+          type: number
+          format: float
+        duplicate_prevention_time_range:
+          type: integer
+        performance_mode:
+          type: string
+        hls_segment_length:
+          type: integer
+        hls_segments_in_playlist:
+          type: integer
+        hls_segments_overhead:
+          type: integer
+        hls_enable_on_public_player:
+          type: boolean
+        hls_is_default:
+          type: boolean
+        live_broadcast_text:
+          type: string
+        enable_auto_cue:
+          type: boolean
+        write_playlists_to_liquidsoap:
+          type: boolean
+        custom_config_top:
+          description: 'Custom Liquidsoap Configuration: Top Section'
+          type: string
+          nullable: true
+        custom_config_pre_playlists:
+          description: 'Custom Liquidsoap Configuration: Pre-Playlists Section'
+          type: string
+          nullable: true
+        custom_config_pre_live:
+          description: 'Custom Liquidsoap Configuration: Pre-Live Section'
+          type: string
+          nullable: true
+        custom_config_pre_fade:
+          description: 'Custom Liquidsoap Configuration: Pre-Fade Section'
+          type: string
+          nullable: true
+        custom_config:
+          description: 'Custom Liquidsoap Configuration: Pre-Broadcast Section'
+          type: string
+          nullable: true
+        custom_config_bottom:
+          description: 'Custom Liquidsoap Configuration: Post-Broadcast Section'
+          type: string
+          nullable: true
+      type: object
+    StationBrandingConfiguration:
+      properties:
+        default_album_art_url:
+          type: string
+          nullable: true
+        public_custom_css:
+          type: string
+          nullable: true
+        public_custom_js:
+          type: string
+          nullable: true
+        offline_text:
+          type: string
+          nullable: true
+      type: object
+    StationFrontendConfiguration:
+      properties:
+        custom_config:
+          type: string
+          nullable: true
+        source_pw:
+          type: string
+        admin_pw:
+          type: string
+        relay_pw:
+          type: string
+        streamer_pw:
+          type: string
+        port:
+          type: integer
+          nullable: true
+        max_listeners:
+          type: integer
+          nullable: true
+        banned_ips:
+          type: string
+          nullable: true
+        banned_user_agents:
+          type: string
+          nullable: true
+        banned_countries:
+          type: array
+          items:
+            type: string
+          nullable: true
+        allowed_ips:
+          type: string
+          nullable: true
+        sc_license_id:
+          type: string
+          nullable: true
+        sc_user_id:
+          type: string
+          nullable: true
+      type: object
     StationHlsStream:
       type: object
       allOf:
@@ -8781,6 +9033,33 @@ components:
               example: 128
               nullable: true
           type: object
+    StationMediaMetadata:
+      properties:
+        amplify:
+          type: number
+          format: float
+          nullable: true
+        cross_start_next:
+          type: number
+          format: float
+          nullable: true
+        fade_in:
+          type: number
+          format: float
+          nullable: true
+        fade_out:
+          type: number
+          format: float
+          nullable: true
+        cue_in:
+          type: number
+          format: float
+          nullable: true
+        cue_out:
+          type: number
+          format: float
+          nullable: true
+      type: object
     StationMount:
       type: object
       allOf:
@@ -8794,7 +9073,6 @@ components:
             display_name:
               type: string
               example: '128kbps MP3'
-              nullable: true
             is_visible_on_public_pages:
               type: boolean
               example: true
@@ -8902,9 +9180,10 @@ components:
               type: boolean
               example: true
             backend_options:
-              type: string
+              type: array
+              items:
+                type: string
               example: 'interrupt,loop_once,single_track,merge'
-              nullable: true
             avoid_duplicates:
               type: boolean
               example: true
@@ -8932,9 +9211,10 @@ components:
               example: 2200
             days:
               description: 'Array of ISO-8601 days (1 for Monday, 7 for Sunday)'
-              type: string
+              type: array
+              items:
+                type: integer
               example: '0,1,2,3'
-              nullable: true
             loop_once:
               type: boolean
               example: false
@@ -8956,7 +9236,6 @@ components:
             display_name:
               type: string
               example: 'Test DJ'
-              nullable: true
             comments:
               type: string
               example: 'This is a test DJ account.'
@@ -9033,6 +9312,9 @@ components:
         title:
           type: string
           nullable: true
+        album:
+          type: string
+          nullable: true
       type: object
     HasSplitTokenFields:
       properties:
@@ -9061,10 +9343,9 @@ components:
             email:
               type: string
               example: demo@azuracast.com
-            new_password:
+            auth_password:
               type: string
               example: ''
-              nullable: true
             name:
               type: string
               example: 'Demo Account'
@@ -9147,6 +9428,7 @@ components:
         - 'manage station mounts'
         - 'manage station remotes'
         - 'manage station media'
+        - 'delete station media'
         - 'manage station automation'
         - 'manage station web hooks'
         - 'manage station podcasts'
@@ -9161,6 +9443,7 @@ components:
         - MountPoints
         - RemoteRelays
         - Media
+        - DeleteMedia
         - Automation
         - WebHooks
         - Podcasts

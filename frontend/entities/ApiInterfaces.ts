@@ -112,6 +112,7 @@ export enum StationPermissions {
   MountPoints = "manage station mounts",
   RemoteRelays = "manage station remotes",
   Media = "manage station media",
+  DeleteMedia = "delete station media",
   Automation = "manage station automation",
   WebHooks = "manage station web hooks",
   Podcasts = "manage station podcasts",
@@ -1121,6 +1122,8 @@ export type ApiPodcast = HasLinks & {
   has_custom_art?: boolean;
   art?: string;
   art_updated_at?: number;
+  /** The UUIDv5 global unique identifier for this podcast, based on its RSS feed URL. */
+  guid?: string;
   is_published?: boolean;
   episodes?: number;
   categories?: ApiPodcastCategory[];
@@ -1195,12 +1198,12 @@ export type ApiStationMedia = ApiHasSongFields &
      */
     id?: number;
     /**
-     * A unique identifier associated with this record.
+     * A unique identifier for this specific media item in the station's library. Each entry in the media table has a unique ID, even if it refers to a song that exists elsewhere.
      * @example "69b536afc7ebbf16457b8645"
      */
     unique_id?: string;
     /**
-     * The media file's 32-character unique song identifier hash
+     * The media file's 32-character unique song identifier hash. This hash is based on track metadata, so the same song uploaded multiple times will have the same `song_id`.
      * @example "9f33bbc912c19603e51be8e0987d076b"
      */
     song_id?: string;
@@ -1891,11 +1894,9 @@ export type Station = HasAutoIncrementId & {
    */
   is_enabled?: boolean;
   frontend_type?: FrontendAdapters;
-  /** An array containing station-specific frontend configuration */
-  frontend_config?: object;
+  frontend_config?: StationFrontendConfiguration;
   backend_type?: BackendAdapters;
-  /** An array containing station-specific backend configuration */
-  backend_config?: object;
+  backend_config?: StationBackendConfiguration;
   /** @example "A sample radio station." */
   description?: string | null;
   /** @example "https://demo.azuracast.com/" */
@@ -1903,7 +1904,7 @@ export type Station = HasAutoIncrementId & {
   /** @example "Various" */
   genre?: string | null;
   /** @example "/var/azuracast/stations/azuratest_radio" */
-  radio_base_dir?: string | null;
+  radio_base_dir?: string;
   /**
    * Whether listeners can request songs to play on this station.
    * @example true
@@ -1954,7 +1955,7 @@ export type Station = HasAutoIncrementId & {
    * The time zone that station operations should take place in.
    * @example "UTC"
    */
-  timezone?: string | null;
+  timezone?: string;
   /**
    * The maximum bitrate at which a station may broadcast, in Kbps. 0 for unlimited
    * @example 128
@@ -1970,9 +1971,76 @@ export type Station = HasAutoIncrementId & {
    * @example 3
    */
   max_hls_streams?: number;
-  /** An array containing station-specific branding configuration */
-  branding_config?: object;
+  branding_config?: StationBrandingConfiguration;
 };
+
+export interface StationBackendConfiguration {
+  charset?: string;
+  dj_port?: number | null;
+  telnet_port?: number | null;
+  record_streams?: boolean;
+  record_streams_format?: string;
+  record_streams_bitrate?: number;
+  use_manual_autodj?: boolean;
+  autodj_queue_length?: number;
+  dj_mount_point?: string;
+  dj_buffer?: number;
+  audio_processing_method?: string;
+  post_processing_include_live?: boolean;
+  stereo_tool_license_key?: string | null;
+  stereo_tool_configuration_path?: string | null;
+  master_me_preset?: string | null;
+  master_me_loudness_target?: number;
+  enable_replaygain_metadata?: boolean;
+  crossfade_type?: string;
+  /** @format float */
+  crossfade?: number;
+  duplicate_prevention_time_range?: number;
+  performance_mode?: string;
+  hls_segment_length?: number;
+  hls_segments_in_playlist?: number;
+  hls_segments_overhead?: number;
+  hls_enable_on_public_player?: boolean;
+  hls_is_default?: boolean;
+  live_broadcast_text?: string;
+  enable_auto_cue?: boolean;
+  write_playlists_to_liquidsoap?: boolean;
+  /** Custom Liquidsoap Configuration: Top Section */
+  custom_config_top?: string | null;
+  /** Custom Liquidsoap Configuration: Pre-Playlists Section */
+  custom_config_pre_playlists?: string | null;
+  /** Custom Liquidsoap Configuration: Pre-Live Section */
+  custom_config_pre_live?: string | null;
+  /** Custom Liquidsoap Configuration: Pre-Fade Section */
+  custom_config_pre_fade?: string | null;
+  /** Custom Liquidsoap Configuration: Pre-Broadcast Section */
+  custom_config?: string | null;
+  /** Custom Liquidsoap Configuration: Post-Broadcast Section */
+  custom_config_bottom?: string | null;
+}
+
+export interface StationBrandingConfiguration {
+  default_album_art_url?: string | null;
+  public_custom_css?: string | null;
+  public_custom_js?: string | null;
+  offline_text?: string | null;
+}
+
+export interface StationFrontendConfiguration {
+  custom_config?: string | null;
+  source_pw?: string;
+  admin_pw?: string;
+  relay_pw?: string;
+  streamer_pw?: string;
+  port?: number | null;
+  max_listeners?: number | null;
+  banned_ips?: string | null;
+  banned_user_agents?: string | null;
+  banned_countries?: string[] | null;
+  allowed_ips?: string | null;
+  sc_license_id?: string | null;
+  sc_user_id?: string | null;
+}
 
 export type StationHlsStream = HasAutoIncrementId & {
   /** @example "aac_lofi" */
@@ -1983,11 +2051,26 @@ export type StationHlsStream = HasAutoIncrementId & {
   bitrate?: number | null;
 };
 
+export interface StationMediaMetadata {
+  /** @format float */
+  amplify?: number | null;
+  /** @format float */
+  cross_start_next?: number | null;
+  /** @format float */
+  fade_in?: number | null;
+  /** @format float */
+  fade_out?: number | null;
+  /** @format float */
+  cue_in?: number | null;
+  /** @format float */
+  cue_out?: number | null;
+}
+
 export type StationMount = HasAutoIncrementId & {
   /** @example "/radio.mp3" */
   name?: string;
   /** @example "128kbps MP3" */
-  display_name?: string | null;
+  display_name?: string;
   /** @example true */
   is_visible_on_public_pages?: boolean;
   /** @example false */
@@ -2061,7 +2144,7 @@ export type StationPlaylist = HasAutoIncrementId & {
    */
   include_in_on_demand?: boolean;
   /** @example "interrupt,loop_once,single_track,merge" */
-  backend_options?: string | null;
+  backend_options?: string[];
   /** @example true */
   avoid_duplicates?: boolean;
   /** StationSchedule> */
@@ -2079,7 +2162,7 @@ export type StationSchedule = HasAutoIncrementId & {
    * Array of ISO-8601 days (1 for Monday, 7 for Sunday)
    * @example "0,1,2,3"
    */
-  days?: string | null;
+  days?: number[];
   /** @example false */
   loop_once?: boolean;
 };
@@ -2091,7 +2174,7 @@ export type StationStreamer = HasAutoIncrementId & {
   /** @example "" */
   streamer_password?: string;
   /** @example "Test DJ" */
-  display_name?: string | null;
+  display_name?: string;
   /** @example "This is a test DJ account." */
   comments?: string | null;
   /** @example true */
@@ -2133,6 +2216,7 @@ export interface HasSongFields {
   text?: string | null;
   artist?: string | null;
   title?: string | null;
+  album?: string | null;
 }
 
 export interface HasSplitTokenFields {
@@ -2148,7 +2232,7 @@ export type User = HasAutoIncrementId & {
   /** @example "demo@azuracast.com" */
   email?: string;
   /** @example "" */
-  new_password?: string | null;
+  auth_password?: string;
   /** @example "Demo Account" */
   name?: string | null;
   /** @example "en_US" */

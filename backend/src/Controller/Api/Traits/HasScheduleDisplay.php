@@ -38,18 +38,18 @@ trait HasScheduleDisplay
                     $scheduler->shouldSchedulePlayOnCurrentDate($scheduleItem, $tz, $i)
                     && $scheduler->isScheduleScheduledToPlayToday($scheduleItem, $dayOfWeek)
                 ) {
-                    if($scheduleItem->getStartDate() === $i->format('Y-m-d'))
+                    if($scheduleItem->start_date === $i->format('Y-m-d'))
                     {
-                        $rowStart = StationSchedule::getDateTime($scheduleItem->getStartTime(), $tz, $i);
+                        $rowStart = StationSchedule::getDateTime($scheduleItem->start_time, $tz, $i);
                     }
                     else
                     {
                         $rowStart = StationSchedule::getDateTime("0000", $tz, $i);
                     }
                         
-                    if($scheduleItem->getEndDate() === $i->format('Y-m-d'))
+                    if($scheduleItem->end_date === $i->format('Y-m-d'))
                     {
-                        $rowEnd = StationSchedule::getDateTime($scheduleItem->getEndTime(), $tz, $i);
+                        $rowEnd = StationSchedule::getDateTime($scheduleItem->end_time, $tz, $i);
                     }
                     else
                     {
