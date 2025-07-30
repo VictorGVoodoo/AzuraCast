@@ -153,6 +153,8 @@
         </main>
 
         <footer id="footer">
+            CLVBS
+            &bull;
             {{ $gettext('Powered by') }}
             <a
                 href="https://www.azuracast.com/"
