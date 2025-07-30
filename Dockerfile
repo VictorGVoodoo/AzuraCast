@@ -182,6 +182,29 @@ RUN composer install --no-dev --no-ansi --no-autoloader --no-interaction \
 
 USER root
 
+#
+# Custom production step
+#
+FROM final AS production
+
+RUN --mount=type=bind,source=./util/docker/common,target=/bd_build,rw \
+    --mount=type=bind,source=./util/docker/dev/setup/,target=/bd_build/dev/setup,rw \
+    bash /bd_build/dev/setup/node.sh && \
+    bash /bd_build/cleanup.sh
+
+USER azuracast
+
+WORKDIR /var/azuracast/www
+
+RUN npm ci \
+    && node ./node_modules/vite/bin/vite.js build \
+    && rm -rf node_modules
+
+USER root
+
+RUN apt remove nodejs -y \
+    && rm /etc/apt/sources.list.d/nodesource.list
+
 # Entrypoint and default command
 ENTRYPOINT ["tini", "--", "/usr/local/bin/my_init"]
 CMD ["--no-main-command"]
